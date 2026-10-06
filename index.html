@@ -92,7 +92,7 @@ textarea{font:12px ui-monospace,Menlo,monospace;width:100%;min-height:120px;marg
     <h2>Données</h2>
     <p class="note" id="info"></p>
     <div class="row">
-      <label class="btn primary">Importer un CSV<input type="file" id="file" accept=".csv,.txt,text/csv,text/plain,*/*"></label>
+      <label class="btn primary">Importer un CSV<input type="file" id="file" accept="*/*"></label>
       <button class="btn" id="dl" type="button">Sauvegarder</button>
       <label class="btn">Restaurer<input type="file" id="restore" accept=".json,application/json,*/*"></label>
       <button class="btn danger" id="wipe" type="button">Tout effacer</button>
@@ -191,6 +191,7 @@ function toISO(s,order){
   s=(s||'').trim();
   var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);
   if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  if(/^\d{5}(\.\d+)?$/.test(s)){var dd=new Date(Date.UTC(1899,11,30)+Math.floor(parseFloat(s))*864e5);return dd.toISOString().slice(0,10)}
   m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
   if(!m)return null;
   var d=order==='dmy'?m[1]:m[2],mo=order==='dmy'?m[2]:m[1];
@@ -199,7 +200,10 @@ function toISO(s,order){
 }
 // Retourne {res:{code:{k,s,e,g,t}}, ignored:n} ou {error:'...'}
 function readAirbnb(text){
-  var rows=parseCSV(text);
+  if((text.match(/[\uFFFD\u0000-\u0008]/g)||[]).length>3)return{error:'Ce fichier n\'est pas un CSV lisible (fichier binaire). Choisis le fichier .csv exporté depuis Airbnb.'};
+  return readRows(parseCSV(text));
+}
+function readRows(rows){
   if(rows.length<2)return{error:'Le fichier est vide ou illisible.'};
   var hi=-1,i;
   for(i=0;i<Math.min(rows.length,15);i++){
@@ -250,6 +254,61 @@ function buildData(list){
   return D;
 }
 
+async function inflateRaw(u8){
+  var ds=new DecompressionStream('deflate-raw');
+  var w=ds.writable.getWriter();w.write(u8);w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+async function unzip(buf){
+  var u=new Uint8Array(buf),dv=new DataView(buf),i,out={};
+  for(i=u.length-22;i>=0;i--){if(dv.getUint32(i,true)===0x06054b50)break}
+  if(i<0)throw new Error('zip');
+  var n=dv.getUint16(i+10,true),p=dv.getUint32(i+16,true),td=new TextDecoder();
+  for(var k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50)break;
+    var meth=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),el=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    var name=td.decode(u.subarray(p+46,p+46+nl));
+    var ln=dv.getUint16(lo+26,true),le=dv.getUint16(lo+28,true),st=lo+30+ln+le,raw=u.subarray(st,st+cs);
+    if(/^xl\/(sharedStrings\.xml|worksheets\/sheet\d+\.xml)$/.test(name))
+      out[name]=td.decode(meth===0?raw:await inflateRaw(raw));
+    p+=46+nl+el+cl;
+  }
+  return out;
+}
+function xmlText(s){
+  return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,function(_,d){return String.fromCharCode(+d)}).replace(/&amp;/g,'&');
+}
+function colIdx(ref){var m=/^([A-Z]+)/.exec(ref)[1],n=0;for(var i=0;i<m.length;i++)n=n*26+m.charCodeAt(i)-64;return n-1}
+async function xlsxToRows(buf){
+  var z=await unzip(buf),names=Object.keys(z).filter(function(x){return x.indexOf('worksheets')>-1}).sort(function(a,b){return parseInt(a.replace(/\D/g,''))-parseInt(b.replace(/\D/g,''))});
+  if(!names.length)throw new Error('sheet');
+  var ss=[];
+  if(z['xl/sharedStrings.xml']){
+    (z['xl/sharedStrings.xml'].match(/<si[\s>][\s\S]*?<\/si>|<si\/>/g)||[]).forEach(function(si){
+      var t='',re=/<t[^>]*>([\s\S]*?)<\/t>/g,m;while((m=re.exec(si)))t+=m[1];ss.push(xmlText(t));
+    });
+  }
+  var rows=[],xml=z[names[0]],rr=/<row[^>]*>([\s\S]*?)<\/row>/g,rm;
+  while((rm=rr.exec(xml))){
+    var row=[],cr=/<c\s([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g,cm;
+    while((cm=cr.exec(rm[1]))){
+      var at=cm[1],body=cm[2]||'',ref=/r="([A-Z]+\d+)"/.exec(at),ty=/t="(\w+)"/.exec(at),v='',vm;
+      if(ty&&ty[1]==='s'){vm=/<v>([\s\S]*?)<\/v>/.exec(body);v=vm?(ss[+vm[1]]||''):''}
+      else if(ty&&ty[1]==='inlineStr'){vm=/<t[^>]*>([\s\S]*?)<\/t>/.exec(body);v=vm?xmlText(vm[1]):''}
+      else{vm=/<v>([\s\S]*?)<\/v>/.exec(body);v=vm?xmlText(vm[1]):''}
+      if(ref)row[colIdx(ref[1])]=v;else row.push(v);
+    }
+    for(var j=0;j<row.length;j++)if(row[j]===undefined)row[j]='';
+    rows.push(row);
+  }
+  return rows;
+}
+// Une feuille d'une seule colonne = lignes de CSV collées telles quelles
+function rowsToCsvText(rows){
+  var wide=rows.some(function(r){return r.slice(1).some(function(x){return String(x).trim()!==''})});
+  return wide?null:rows.map(function(r){return r[0]||''}).join('\n');
+}
+
 var KEY='bilan_airbnb_v1';
 var MS=['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
 var MF=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
@@ -275,8 +334,8 @@ function recompute(){
   if(ys.length){for(var y=ys[0];y<=ys[ys.length-1];y++){years.push(y);if(!DATA[y])DATA[y]={n:Array(12).fill(0),c:Array(12).fill(0),g:Array(12).fill(0),t:Array(12).fill(0)}}}
   if(years.indexOf(cur)<0)cur=years.length?years[years.length-1]:null;
 }
-function importText(text,label){
-  var r=readAirbnb(text);
+function importText(text,label){importResult(readAirbnb(text),label)}
+function importResult(r,label){
   if(r.error){say(r.error,true);return}
   var add=0,upd=0;
   Object.keys(r.res).forEach(function(k){
@@ -395,9 +454,24 @@ function readFile(file,cb){
   fr.onerror=function(){say('Impossible de lire ce fichier.',true)};
   fr.readAsArrayBuffer(file);
 }
+function importFile(file){
+  var fr=new FileReader();
+  fr.onerror=function(){say('Impossible de lire ce fichier.',true)};
+  fr.onload=function(){
+    var buf=fr.result,u=new Uint8Array(buf);
+    if(u[0]===0x50&&u[1]===0x4B){
+      if(typeof DecompressionStream==='undefined'){say('Ce navigateur ne sait pas ouvrir les fichiers Excel. Utilise le CSV ou mets le navigateur à jour.',true);return}
+      xlsxToRows(buf).then(function(rows){
+        var t=rowsToCsvText(rows);
+        importResult(t!==null?readAirbnb(t):readRows(rows),file.name);
+      }).catch(function(){say('Impossible de lire ce fichier Excel. Exporte-le plutôt en CSV.',true)});
+    }else importText(decode(buf),file.name);
+  };
+  fr.readAsArrayBuffer(file);
+}
 $('file').addEventListener('change',function(e){
   var f=e.target.files&&e.target.files[0];if(!f)return;
-  readFile(f,function(t){importText(t,f.name)});
+  importFile(f);
   e.target.value='';
 });
 $('goPaste').addEventListener('click',function(){
