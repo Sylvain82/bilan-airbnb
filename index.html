@@ -79,6 +79,10 @@ tr.cur td{background:color-mix(in srgb,var(--pool) 12%,var(--surface))}
 details{margin-top:12px}summary{cursor:pointer;font-weight:600;color:var(--ink2);min-height:32px}
 textarea{font:12px ui-monospace,Menlo,monospace;width:100%;min-height:120px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 [hidden]{display:none!important}
+.cfg{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cfg label{font-weight:600}
+.cfg .f{display:flex;align-items:center;gap:6px}
+.cfg input{font:inherit;font-weight:700;font-variant-numeric:tabular-nums;width:92px;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);text-align:right}
 .stack{display:flex;flex-direction:column;gap:16px}
 </style></head>
 <body>
@@ -112,6 +116,11 @@ textarea{font:12px ui-monospace,Menlo,monospace;width:100%;min-height:120px;marg
   </section>
 
   <div id="dash" class="stack" hidden>
+    <section class="card cfg">
+      <div><label for="clean">Frais de ménage facturés par location</label>
+      <p class="note" style="margin-top:2px">Ce que te facture la personne qui fait le ménage. Soustrait du net perçu, mois par mois.</p></div>
+      <div class="f"><input id="clean" type="number" inputmode="decimal" min="0" step="0.5" value="35"><span>€</span></div>
+    </section>
     <div class="chips" id="chips" role="group" aria-label="Année"></div>
     <section class="kpis" id="kpis" aria-label="Chiffres clés"></section>
 
@@ -143,12 +152,12 @@ textarea{font:12px ui-monospace,Menlo,monospace;width:100%;min-height:120px;marg
     <section class="card">
       <h2 id="taxTitle">Pour la déclaration d'impôts</h2>
       <div class="tax" id="tax"></div>
-      <p class="note">Estimation indicative en micro-BIC : abattement de 50 % pour un meublé classique, 71 % si le logement est classé meublé de tourisme. À confirmer sur impots.gouv.fr ou avec un comptable.</p>
+      <p class="note">Estimation indicative en micro-BIC : l'abattement remplace les charges, donc le ménage n'est pas déduit en plus. Abattement de 50 % pour un meublé classique, 71 % si le logement est classé meublé de tourisme. À confirmer sur impots.gouv.fr ou avec un comptable.</p>
     </section>
 
     <section class="card">
       <h2>Comment c'est calculé</h2>
-      <p class="note">Seules les lignes de type « Réservation » sont comptées. Un séjour à cheval sur deux mois ou deux années est réparti nuit par nuit. Le brut est le montant payé pour le séjour (ménage compris), hors taxes reversées par Airbnb. Le net est le brut moins les frais de service. Les lignes de versement et de régularisation sont ignorées.</p>
+      <p class="note">Seules les lignes de type « Réservation » sont comptées. Un séjour à cheval sur deux mois ou deux années est réparti nuit par nuit. Le brut est le montant payé pour le séjour (ménage compris), hors taxes reversées par Airbnb. Le net est le brut moins les frais de service. Le ménage est calculé en multipliant le nombre de locations par ton tarif, au mois de l'arrivée. Les lignes de versement et de régularisation sont ignorées.</p>
     </section>
   </div>
 </div>
@@ -315,7 +324,8 @@ var MF=['janvier','février','mars','avril','mai','juin','juillet','août','sept
 var $=function(i){return document.getElementById(i)};
 var nf=new Intl.NumberFormat('fr-FR');
 var eur=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});
-var store={},DATA={},years=[],cur=null,selM=-1;
+var eur2=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2});
+var store={},DATA={},years=[],cur=null,selM=-1,CLEAN=35,CKEY='bilan_airbnb_cfg';
 function sum(a){return a.reduce(function(x,y){return x+y},0)}
 function dIn(y){return((y%4===0&&y%100!==0)||y%400===0)?366:365}
 function dM(y,m){return new Date(y,m+1,0).getDate()}
@@ -323,7 +333,9 @@ function tot(y){var D=DATA[y];return{n:sum(D.n),c:sum(D.c),g:sum(D.g),t:sum(D.t)
 function pct(v){return (v*100).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %'}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 
-function load(){try{var t=localStorage.getItem(KEY);if(t)store=JSON.parse(t)||{}}catch(e){store={}}}
+function load(){try{var t=localStorage.getItem(KEY);if(t)store=JSON.parse(t)||{}}catch(e){store={}}
+  try{var c=localStorage.getItem(CKEY);if(c!==null&&c!==''&&!isNaN(+c)&&+c>=0)CLEAN=+c}catch(e){}
+  $('clean').value=CLEAN}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store));return true}catch(e){return false}}
 function say(txt,bad){var m=$('msg');m.hidden=!txt;m.textContent=txt||'';m.className='msg'+(bad?' bad':'')}
 
@@ -361,7 +373,8 @@ function kpis(){
    ['','Locations',nf.format(T.c),T.c?'séjour moyen de '+(T.n/T.c).toLocaleString('fr-FR',{maximumFractionDigits:1})+' nuits':''],
    ['','Taux d\'occupation',pct(T.n/D),'nuits louées sur l\'année'],
    ['','Prix moyen par nuit',T.n?eur.format(T.g/T.n):'–','brut, ménage compris'],
-   ['','Net par nuit',T.n?eur.format(T.t/T.n):'–','après frais Airbnb']
+   ['','Frais de ménage',eur.format(T.c*CLEAN),T.c+' location'+(T.c>1?'s':'')+' × '+eur2.format(CLEAN)],
+   ['','Reste après ménage',eur.format(T.t-T.c*CLEAN),'net perçu moins ménage'+(T.n?', soit '+eur.format((T.t-T.c*CLEAN)/T.n)+' par nuit':'')]
   ];
   $('kpis').innerHTML=k.map(function(x){return '<div class="kpi '+x[0]+'"><div class="l">'+x[1]+'</div><div class="v">'+x[2]+'</div><div class="n">'+x[3]+'</div></div>'}).join('');
 }
@@ -408,25 +421,25 @@ function chartM(){
 function tableM(){
   var D=DATA[cur],T=tot(cur);
   $('tTitle').textContent='Détail par mois en '+cur;
-  var h='<thead><tr><th>Mois</th><th>Nuits</th><th>Loc.</th><th>Brut</th><th>Net</th><th>Occ.</th></tr></thead><tbody>';
-  for(var m=0;m<12;m++)h+='<tr'+(m===selM?' class="cur"':'')+'><td>'+MS[m]+'</td><td>'+D.n[m]+'</td><td>'+D.c[m]+'</td><td>'+eur.format(D.g[m])+'</td><td>'+eur.format(D.t[m])+'</td><td>'+Math.round(D.n[m]/dM(cur,m)*100)+' %</td></tr>';
-  h+='</tbody><tfoot><tr><td>Total</td><td>'+T.n+'</td><td>'+T.c+'</td><td>'+eur.format(T.g)+'</td><td>'+eur.format(T.t)+'</td><td>'+Math.round(T.n/dIn(cur)*100)+' %</td></tr></tfoot>';
+  var h='<thead><tr><th>Mois</th><th>Nuits</th><th>Loc.</th><th>Brut</th><th>Net</th><th>Ménage</th><th>Reste</th><th>Occ.</th></tr></thead><tbody>';
+  for(var m=0;m<12;m++)h+='<tr'+(m===selM?' class="cur"':'')+'><td>'+MS[m]+'</td><td>'+D.n[m]+'</td><td>'+D.c[m]+'</td><td>'+eur.format(D.g[m])+'</td><td>'+eur.format(D.t[m])+'</td><td>'+eur.format(D.c[m]*CLEAN)+'</td><td>'+eur.format(D.t[m]-D.c[m]*CLEAN)+'</td><td>'+Math.round(D.n[m]/dM(cur,m)*100)+' %</td></tr>';
+  h+='</tbody><tfoot><tr><td>Total</td><td>'+T.n+'</td><td>'+T.c+'</td><td>'+eur.format(T.g)+'</td><td>'+eur.format(T.t)+'</td><td>'+eur.format(T.c*CLEAN)+'</td><td>'+eur.format(T.t-T.c*CLEAN)+'</td><td>'+Math.round(T.n/dIn(cur)*100)+' %</td></tr></tfoot>';
   $('tblM').innerHTML=h;
 }
 function yearly(){
   var lab=years.map(function(y){return String(y).slice(2)}),net=[],fee=[];
   years.forEach(function(y){var T=tot(y);net.push(T.t);fee.push(T.g-T.t)});
   bars($('chartY'),lab,net,fee,ax,'Revenus bruts par année',years.indexOf(cur));
-  var h='<thead><tr><th>Année</th><th>Nuits</th><th>Loc.</th><th>Brut</th><th>Net</th><th>€/nuit</th></tr></thead><tbody>',A={n:0,c:0,g:0,t:0};
+  var h='<thead><tr><th>Année</th><th>Nuits</th><th>Loc.</th><th>Brut</th><th>Net</th><th>Ménage</th><th>Reste</th></tr></thead><tbody>',A={n:0,c:0,g:0,t:0};
   years.slice().reverse().forEach(function(y){var T=tot(y);A.n+=T.n;A.c+=T.c;A.g+=T.g;A.t+=T.t;
-    h+='<tr class="pick'+(y===cur?' cur':'')+'" data-y="'+y+'"><td>'+y+'</td><td>'+T.n+'</td><td>'+T.c+'</td><td>'+eur.format(T.g)+'</td><td>'+eur.format(T.t)+'</td><td>'+(T.n?eur.format(T.g/T.n):'–')+'</td></tr>'});
-  h+='</tbody><tfoot><tr><td>Total</td><td>'+A.n+'</td><td>'+A.c+'</td><td>'+eur.format(A.g)+'</td><td>'+eur.format(A.t)+'</td><td>'+(A.n?eur.format(A.g/A.n):'–')+'</td></tr></tfoot>';
+    h+='<tr class="pick'+(y===cur?' cur':'')+'" data-y="'+y+'"><td>'+y+'</td><td>'+T.n+'</td><td>'+T.c+'</td><td>'+eur.format(T.g)+'</td><td>'+eur.format(T.t)+'</td><td>'+eur.format(T.c*CLEAN)+'</td><td>'+eur.format(T.t-T.c*CLEAN)+'</td></tr>'});
+  h+='</tbody><tfoot><tr><td>Total</td><td>'+A.n+'</td><td>'+A.c+'</td><td>'+eur.format(A.g)+'</td><td>'+eur.format(A.t)+'</td><td>'+eur.format(A.c*CLEAN)+'</td><td>'+eur.format(A.t-A.c*CLEAN)+'</td></tr></tfoot>';
   $('tblY').innerHTML=h;
 }
 function tax(){
   var T=tot(cur);
   $('taxTitle').textContent='Pour la déclaration d\'impôts '+cur;
-  $('tax').innerHTML='<div>Recettes brutes</div><div>'+eur.format(T.g)+'</div><div>Abattement 50 %</div><div>−'+eur.format(T.g*.5)+'</div><div class="big">Revenu imposable estimé</div><div class="big">'+eur.format(T.g*.5)+'</div><div>Net perçu après frais Airbnb</div><div>'+eur.format(T.t)+'</div>';
+  $('tax').innerHTML='<div>Recettes brutes</div><div>'+eur.format(T.g)+'</div><div>Abattement 50 %</div><div>−'+eur.format(T.g*.5)+'</div><div class="big">Revenu imposable estimé</div><div class="big">'+eur.format(T.g*.5)+'</div><div>Net perçu après frais Airbnb</div><div>'+eur.format(T.t)+'</div><div>Frais de ménage</div><div>−'+eur.format(T.c*CLEAN)+'</div><div>Reste après ménage</div><div>'+eur.format(T.t-T.c*CLEAN)+'</div>';
 }
 function info(){
   var n=Object.keys(store).length;
@@ -493,6 +506,12 @@ $('restore').addEventListener('change',function(e){
     catch(x){say('Ce fichier n\'est pas une sauvegarde valide.',true)}
   });
   e.target.value='';
+});
+$('clean').addEventListener('input',function(){
+  var v=parseFloat(String(this.value).replace(',','.'));
+  CLEAN=isNaN(v)||v<0?0:v;
+  try{localStorage.setItem(CKEY,String(CLEAN))}catch(e){}
+  if(years.length){kpis();tableM();yearly();tax()}
 });
 $('wipe').addEventListener('click',function(){
   if(!confirm('Effacer toutes les données enregistrées dans ce navigateur ?'))return;
