@@ -155,7 +155,7 @@ textarea{font:12px ui-monospace,Menlo,monospace;width:100%;min-height:120px;marg
 <script>
 (function(){
 function parseCSV(text){
-  text=text.replace(/^\uFEFF/,'');
+  text=text.replace(/^\uFEFF/,'').replace(/^sep=.\r?\n/i,'');
   var first=text.split(/\r?\n/)[0]||'';
   var delim=(first.split(';').length>first.split(',').length)?';':',';
   var rows=[],row=[],f='',q=false,i,c;
@@ -201,12 +201,27 @@ function toISO(s,order){
 function readAirbnb(text){
   var rows=parseCSV(text);
   if(rows.length<2)return{error:'Le fichier est vide ou illisible.'};
-  var H=rows[0].map(norm),body=rows.slice(1);
-  function col(names){for(var i=0;i<names.length;i++){var j=H.indexOf(names[i]);if(j>-1)return j}return -1}
+  var hi=-1,i;
+  for(i=0;i<Math.min(rows.length,15);i++){
+    var h=rows[i].map(norm);
+    if(h.some(function(x){return x.indexOf('code de confirmation')>-1||x.indexOf('confirmation code')>-1})){hi=i;break}
+  }
+  if(hi<0){
+    var seen=rows[0].slice(0,8).map(function(x){return x.trim()}).filter(Boolean).join(' | ');
+    return{error:'Ce fichier n\'est pas l\'export de transactions Airbnb : il n\'a pas de colonne « Code de confirmation ». Colonnes trouvées : '+(seen||'aucune lisible')+'.'};
+  }
+  var H=rows[hi].map(norm),body=rows.slice(hi+1);
+  function col(names){
+    var j,k;
+    for(k=0;k<names.length;k++){j=H.indexOf(names[k]);if(j>-1)return j}
+    for(k=0;k<names.length;k++){for(j=0;j<H.length;j++){if(H[j].indexOf(names[k])===0)return j}}
+    return -1}
   var cT=col(['type']),cK=col(['code de confirmation','confirmation code']),
       cS=col(['date de debut','start date']),cE=col(['date de fin','end date']),
       cM=col(['montant','amount']),cG=col(['revenus bruts','gross earnings']);
-  if(cK<0||cS<0||cE<0||cG<0||cM<0)return{error:'Colonnes introuvables. Il faut : Code de confirmation, Date de début, Date de fin, Montant, Revenus bruts.'};
+  var miss=[];
+  if(cS<0)miss.push('Date de début');if(cE<0)miss.push('Date de fin');if(cM<0)miss.push('Montant');if(cG<0)miss.push('Revenus bruts');
+  if(miss.length)return{error:'Colonnes manquantes : '+miss.join(', ')+'. Colonnes trouvées : '+rows[hi].slice(0,12).map(function(x){return x.trim()}).filter(Boolean).join(' | ')+'.'};
   var order=detectOrder(body,[cS,cE]),res={},ignored=0;
   body.forEach(function(r){
     var type=cT>-1?norm(r[cT]):'reservation';
@@ -216,7 +231,9 @@ function readAirbnb(text){
     var o=res[k]||(res[k]={k:k,s:s,e:e,g:0,t:0});
     o.g+=toNum(r[cG]);o.t+=toNum(r[cM]);
   });
-  return{res:res,ignored:ignored,count:Object.keys(res).length};
+  var n=Object.keys(res).length;
+  if(!n)return{error:'Aucune ligne de type « Réservation » trouvée dans ce fichier ('+body.length+' lignes lues).'};
+  return{res:res,ignored:ignored,count:n};
 }
 function buildData(list){
   var D={};
@@ -364,11 +381,19 @@ function all(){
   chips();kpis();heat();chartM();tableM();yearly();tax();
 }
 
+function decode(buf){
+  var u=new Uint8Array(buf);
+  if(u[0]===0xFF&&u[1]===0xFE)return new TextDecoder('utf-16le').decode(u);
+  if(u[0]===0xFE&&u[1]===0xFF)return new TextDecoder('utf-16be').decode(u);
+  var t=new TextDecoder('utf-8').decode(u);
+  if(t.indexOf('\uFFFD')>-1){try{t=new TextDecoder('windows-1252').decode(u)}catch(e){}}
+  return t;
+}
 function readFile(file,cb){
   var fr=new FileReader();
-  fr.onload=function(){cb(String(fr.result))};
+  fr.onload=function(){cb(decode(fr.result))};
   fr.onerror=function(){say('Impossible de lire ce fichier.',true)};
-  fr.readAsText(file,'utf-8');
+  fr.readAsArrayBuffer(file);
 }
 $('file').addEventListener('change',function(e){
   var f=e.target.files&&e.target.files[0];if(!f)return;
