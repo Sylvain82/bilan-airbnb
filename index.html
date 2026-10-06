@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bilan Airbnb 2015–2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#edf2f3;--surface:#ffffff;--ink:#10252b;--ink2:#46606a;--muted:#6b8189;--line:#d3dfe2;
+  --pool:#0e7c86;--sun:#d9822b;--sunlt:#f1c697;--hi:#0a5961;
+  --font:'Archivo','Helvetica Neue',Arial,system-ui,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c171b;--surface:#14242a;--ink:#e6f0f2;--ink2:#a3b8bf;--muted:#7d939b;--line:#25383f;
+  --pool:#3fb9c4;--sun:#eba15a;--sunlt:#6b4a27;--hi:#8fe0e7;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c171b;--surface:#14242a;--ink:#e6f0f2;--ink2:#a3b8bf;--muted:#7d939b;--line:#25383f;
+  --pool:#3fb9c4;--sun:#eba15a;--sunlt:#6b4a27;--hi:#8fe0e7;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding:20px 14px 48px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:clamp(1.7rem,6vw,2.5rem);line-height:1.05;margin:0;font-weight:800;font-stretch:90%;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:1.02rem;margin:0 0 4px;font-weight:700}
+.sub{color:var(--ink2);margin:6px 0 0;max-width:60ch}
+.note{color:var(--muted);font-size:.84rem;margin:4px 0 0;max-width:70ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.chip{flex:0 0 auto;font:inherit;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink2);background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:8px 14px;min-height:40px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--pool);border-color:var(--pool);color:var(--surface)}
+:focus-visible{outline:2px solid var(--pool);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:620px){.kpis{grid-template-columns:repeat(3,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.kpi .l{font-size:.8rem;color:var(--muted);font-weight:600}
+.kpi .v{font-size:clamp(1.5rem,6.5vw,2rem);font-weight:800;font-stretch:90%;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi .n{font-size:.8rem;color:var(--ink2);margin-top:2px}
+.kpi.main{grid-column:1/-1}
+.kpi.main .v{font-size:clamp(2.2rem,10vw,3.4rem);color:var(--hi)}
+/* saison */
+.heat{display:grid;grid-template-columns:38px repeat(12,minmax(0,1fr));gap:3px;margin-top:10px;align-items:stretch}
+.heat .mh{font-size:.68rem;color:var(--muted);text-align:center;padding-bottom:2px}
+.heat .yh{font:inherit;font-size:.78rem;font-weight:600;color:var(--ink2);background:none;border:0;padding:0;text-align:left;cursor:pointer;font-variant-numeric:tabular-nums}
+.heat .yh[aria-pressed="true"]{color:var(--hi);font-weight:800}
+.cell{font:inherit;font-size:.66rem;font-variant-numeric:tabular-nums;border:0;border-radius:4px;min-height:24px;padding:0;color:var(--ink);cursor:pointer;
+  background:color-mix(in srgb,var(--pool) var(--p),var(--surface))}
+.cell[data-p="0"]{background:color-mix(in srgb,var(--line) 55%,var(--surface));color:transparent}
+.cell.hot{color:#fff}
+.cell.sel{outline:2px solid var(--sun);outline-offset:1px}
+.detail{margin:10px 0 0;min-height:1.4em;font-weight:600;color:var(--ink)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;color:var(--ink2);margin-top:6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tbl{overflow-x:auto;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.9rem}
+th,td{text-align:right;padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.78rem;color:var(--muted);font-weight:600}
+tfoot td{font-weight:800;border-bottom:0}
+tr.pick{cursor:pointer}
+tr.cur td{background:color-mix(in srgb,var(--pool) 12%,var(--surface))}
+.tax{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin-top:8px;font-variant-numeric:tabular-nums}
+.tax div:nth-child(even){text-align:right;font-weight:700}
+.tax .big{font-size:1.15rem;color:var(--hi)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Bilan Airbnb, de 2015 à 2026</h1>
+    <p class="sub">Nuits louées, revenus et locations de ton appartement, mois par mois. Touche une année ou un mois pour changer le détail.</p>
+  </header>
+
+  <div class="chips" id="chips" role="group" aria-label="Année"></div>
+
+  <section class="kpis" id="kpis" aria-label="Chiffres clés"></section>
+
+  <section class="card">
+    <h2>La saison, année par année</h2>
+    <p class="note">Plus la case est foncée, plus il y a de nuits louées ce mois-là.</p>
+    <div class="heat" id="heat"></div>
+    <p class="detail" id="detail" aria-live="polite"></p>
+  </section>
+
+  <section class="card">
+    <h2 id="cTitle">Revenus par mois</h2>
+    <div class="legend"><span><i style="background:var(--pool)"></i>Net perçu</span><span><i style="background:var(--sunlt)"></i>Frais Airbnb</span></div>
+    <div class="chart" id="chart"></div>
+  </section>
+
+  <section class="card">
+    <h2 id="tTitle">Détail par mois</h2>
+    <div class="tbl"><table id="tblM"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Toutes les années</h2>
+    <div class="chart" id="chartY"></div>
+    <div class="tbl"><table id="tblY"></table></div>
+    <p class="note">Touche une ligne pour afficher cette année.</p>
+  </section>
+
+  <section class="card" id="taxCard">
+    <h2 id="taxTitle">Pour la déclaration d'impôts</h2>
+    <div class="tax" id="tax"></div>
+    <p class="note">Estimation indicative en micro-BIC : abattement de 50 % pour un meublé classique, 71 % si le logement est classé meublé de tourisme. À confirmer sur impots.gouv.fr ou avec un comptable.</p>
+  </section>
+
+  <section class="card">
+    <h2>Comment c'est calculé</h2>
+    <p class="note">Source : export CSV des transactions Airbnb, 165 réservations. Une réservation à cheval sur deux mois ou deux années est répartie nuit par nuit, avec la même part de revenu chaque nuit. Le revenu brut est le montant payé par le voyageur pour le séjour (ménage compris), hors taxes reversées par Airbnb. Le net est le brut moins les frais de service Airbnb. Les lignes de versement ne sont pas comptées, pour éviter les doublons. Les quelques lignes de régularisation après litige (de −85 € à +62 € selon l'année) sont ignorées. La dernière transaction de l'export date du 14 septembre 2026 : l'année 2026 est en cours.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+var DATA={"2015": {"n": [0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 3, 0], "c": [0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0], "g": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 298.74, 89.64, 0.0], "t": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 289.0, 87.0, 0.0]}, "2016": {"n": [0, 9, 3, 8, 7, 12, 21, 16, 15, 9, 0, 0], "c": [0, 3, 1, 2, 2, 3, 3, 4, 3, 2, 0, 0], "g": [0.0, 269.23, 89.66, 240.04, 244.93, 536.03, 1191.23, 1129.23, 559.93, 267.97, 0.0, 0.0], "t": [0.0, 261.23, 87.0, 232.0, 236.0, 518.0, 1150.0, 1089.0, 541.0, 259.0, 0.0, 0.0]}, "2017": {"n": [0, 0, 0, 10, 7, 17, 27, 16, 3, 7, 1, 0], "c": [0, 0, 0, 3, 2, 4, 4, 1, 1, 2, 0, 0], "g": [0.0, 0.0, 0.0, 378.1, 271.23, 816.3, 1933.46, 1304.1, 160.76, 233.0, 39.0, 0.0], "t": [0.0, 0.0, 0.0, 365.0, 262.0, 788.0, 1864.86, 1257.81, 155.09, 224.61, 37.6, 0.0]}, "2018": {"n": [0, 2, 0, 0, 6, 9, 16, 27, 11, 1, 2, 0], "c": [0, 1, 0, 0, 2, 2, 4, 4, 3, 1, 0, 0], "g": [0.0, 60.0, 0.0, 0.0, 269.0, 403.17, 1057.79, 2350.8, 429.0, 39.0, 78.0, 0.0], "t": [0.0, 57.84, 0.0, 0.0, 259.32, 388.66, 1019.7, 2266.17, 413.56, 37.6, 75.19, 0.0]}, "2019": {"n": [0, 0, 0, 5, 2, 11, 21, 16, 4, 0, 0, 0], "c": [0, 0, 0, 1, 1, 3, 4, 4, 1, 0, 0, 0], "g": [0.0, 0.0, 0.0, 150.0, 83.33, 447.67, 1433.0, 1393.4, 120.0, 0.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 144.6, 80.33, 431.55, 1381.4, 1343.24, 115.68, 0.0, 0.0, 0.0]}, "2020": {"n": [0, 0, 0, 0, 0, 0, 18, 20, 11, 6, 0, 0], "c": [0, 0, 0, 0, 0, 0, 3, 4, 0, 1, 0, 0], "g": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1120.5, 1577.71, 571.2, 222.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1080.16, 1520.91, 550.64, 214.01, 0.0, 0.0]}, "2021": {"n": [0, 0, 0, 0, 5, 12, 25, 19, 5, 0, 0, 0], "c": [0, 0, 0, 0, 2, 3, 3, 3, 1, 0, 0, 0], "g": [0.0, 0.0, 0.0, 0.0, 227.0, 516.0, 1503.99, 1740.1, 225.0, 0.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 0.0, 218.83, 497.42, 1449.85, 1677.46, 216.9, 0.0, 0.0, 0.0]}, "2022": {"n": [0, 0, 0, 0, 3, 11, 25, 25, 6, 0, 0, 0], "c": [0, 0, 0, 0, 1, 3, 4, 5, 1, 0, 0, 0], "g": [0.0, 0.0, 0.0, 0.0, 135.0, 417.0, 1780.0, 2600.0, 240.0, 0.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 0.0, 130.14, 401.99, 1715.92, 2506.4, 231.36, 0.0, 0.0, 0.0]}, "2023": {"n": [0, 0, 0, 4, 5, 3, 28, 16, 5, 0, 0, 0], "c": [0, 0, 0, 1, 1, 1, 5, 3, 0, 0, 0, 0], "g": [0.0, 0.0, 0.0, 136.0, 181.0, 150.0, 2013.8, 1359.06, 307.14, 0.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 131.1, 174.48, 144.6, 1941.28, 1310.13, 296.09, 0.0, 0.0, 0.0]}, "2024": {"n": [0, 0, 0, 0, 1, 5, 21, 26, 13, 0, 0, 0], "c": [0, 0, 0, 0, 1, 2, 5, 5, 2, 0, 0, 0], "g": [0.0, 0.0, 0.0, 0.0, 56.5, 339.5, 1635.45, 2425.81, 536.0, 0.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 0.0, 54.47, 327.28, 1576.58, 2338.48, 516.7, 0.0, 0.0, 0.0]}, "2025": {"n": [0, 0, 0, 0, 0, 1, 18, 25, 3, 0, 0, 0], "c": [0, 0, 0, 0, 0, 1, 3, 7, 2, 0, 0, 0], "g": [0.0, 0.0, 0.0, 0.0, 0.0, 85.0, 1455.53, 2469.22, 191.0, 0.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 0.0, 0.0, 81.94, 1403.12, 2380.33, 184.12, 0.0, 0.0, 0.0]}, "2026": {"n": [0, 0, 0, 0, 10, 2, 23, 21, 3, 0, 0, 0], "c": [0, 0, 0, 0, 4, 1, 5, 6, 1, 0, 0, 0], "g": [0.0, 0.0, 0.0, 0.0, 519.52, 103.0, 1991.62, 2366.3, 149.8, 0.0, 0.0, 0.0], "t": [0.0, 0.0, 0.0, 0.0, 500.81, 99.29, 1890.82, 1989.77, 121.94, 0.0, 0.0, 0.0]}};
+var MS=['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
+var MF=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+var years=Object.keys(DATA).map(Number).sort(function(a,b){return a-b});
+var cur=years[years.length-1],selM=-1;
+var $=function(i){return document.getElementById(i)};
+var nf=new Intl.NumberFormat('fr-FR');
+var eur=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+var eur2=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2});
+function sum(a){return a.reduce(function(x,y){return x+y},0)}
+function dIn(y){return((y%4===0&&y%100!==0)||y%400===0)?366:365}
+function dM(y,m){return new Date(y,m+1,0).getDate()}
+function tot(y){var D=DATA[y];return{n:sum(D.n),c:sum(D.c),g:sum(D.g),t:sum(D.t)}}
+function pct(v){return (v*100).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %'}
+
+function chips(){
+  $('chips').innerHTML=years.slice().reverse().map(function(y){
+    return '<button class="chip" data-y="'+y+'" aria-pressed="'+(y===cur)+'">'+y+'</button>'}).join('');
+}
+function kpis(){
+  var T=tot(cur),D=dIn(cur),frais=T.g-T.t;
+  var k=[
+   ['main','Revenus bruts '+cur+(cur===years[years.length-1]?' (année en cours)':''),eur.format(T.g),eur.format(T.t)+' net perçu, après '+eur.format(frais)+' de frais Airbnb'],
+   ['','Nuits louées',nf.format(T.n),'sur '+D+' nuits'],
+   ['','Locations',nf.format(T.c),T.c?'séjour moyen de '+(T.n/T.c).toLocaleString('fr-FR',{maximumFractionDigits:1})+' nuits':''],
+   ['','Taux d\'occupation',pct(T.n/D),'nuits louées sur l\'année'],
+   ['','Prix moyen par nuit',T.n?eur.format(T.g/T.n):'–','brut, ménage compris'],
+   ['','Net par nuit',T.n?eur.format(T.t/T.n):'–','après frais Airbnb']
+  ];
+  $('kpis').innerHTML=k.map(function(x){return '<div class="kpi '+x[0]+'"><div class="l">'+x[1]+'</div><div class="v">'+x[2]+'</div><div class="n">'+x[3]+'</div></div>'}).join('');
+}
+function heat(){
+  var h='<div></div>'+MS.map(function(m){return '<div class="mh">'+m.charAt(0)+'</div>'}).join('');
+  years.forEach(function(y){
+    h+='<button class="yh" data-y="'+y+'" aria-pressed="'+(y===cur)+'">'+y+'</button>';
+    for(var m=0;m<12;m++){
+      var n=DATA[y].n[m],p=Math.round(Math.min(1,n/dM(y,m))*100);
+      var cls='cell'+(p>=55?' hot':'')+(y===cur&&m===selM?' sel':'');
+      h+='<button class="'+cls+'" data-y="'+y+'" data-m="'+m+'" data-p="'+(n?1:0)+'" style="--p:'+Math.max(p,10)+'%" aria-label="'+MF[m]+' '+y+' : '+n+' nuits">'+(n||'')+'</button>';
+    }
+  });
+  $('heat').innerHTML=h;
+  var d=$('detail');
+  if(selM>-1){var D=DATA[cur];d.textContent=MF[selM].charAt(0).toUpperCase()+MF[selM].slice(1)+' '+cur+' : '+D.n[selM]+' nuits, '+D.c[selM]+' location'+(D.c[selM]>1?'s':'')+', '+eur.format(D.g[selM])+' bruts'}
+  else d.textContent='Touche un mois pour voir son détail.';
+}
+function bars(host,labels,net,fee,fmtAx,title,sel){
+  var W=640,H=230,L=44,R=6,T=14,B=26,pw=W-L-R,ph=H-T-B,n=labels.length;
+  var tt=net.map(function(v,i){return v+fee[i]}),mx=Math.max.apply(null,tt);
+  var p=Math.pow(10,Math.floor(Math.log10(mx||1))),q=(mx||1)/p,nice=(q<=1?1:q<=2?2:q<=2.5?2.5:q<=5?5:10)*p;mx=nice;
+  var g='',i;
+  for(i=0;i<=4;i++){var y=T+ph-ph*i/4,v=mx*i/4;
+    g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/>';
+    g+='<text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="var(--muted)">'+fmtAx(v)+'</text>'}
+  var bw=pw/n,bar=Math.min(30,bw*.62),s='';
+  for(i=0;i<n;i++){
+    var cx=L+bw*i+bw/2,hn=ph*net[i]/mx,hf=ph*fee[i]/mx,x=cx-bar/2;
+    if(hn>.4)s+='<rect x="'+x+'" y="'+(T+ph-hn)+'" width="'+bar+'" height="'+hn+'" fill="var(--pool)"/>';
+    if(hf>.4)s+='<rect x="'+x+'" y="'+(T+ph-hn-hf)+'" width="'+bar+'" height="'+hf+'" fill="var(--sunlt)"/>';
+    var tv=net[i]+fee[i];
+    if(tv>0&&n<=12&&bw>40)s+='<text x="'+cx+'" y="'+(T+ph-hn-hf-4)+'" text-anchor="middle" font-size="10.5" fill="var(--ink2)">'+nf.format(Math.round(tv))+'</text>';
+    s+='<text x="'+cx+'" y="'+(H-7)+'" text-anchor="middle" font-size="'+(n>12?10:11)+'" fill="'+(sel===i?'var(--hi)':'var(--muted)')+'" '+(sel===i?'font-weight="800"':'')+'>'+labels[i]+'</text>';
+  }
+  host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+title+'">'+g+s+'</svg>';
+}
+function chartM(){
+  var D=DATA[cur];
+  $('cTitle').textContent='Revenus bruts par mois en '+cur;
+  bars($('chart'),MS,D.t,D.g.map(function(v,i){return v-D.t[i]}),function(v){return v>=1000?nf.format(v/1000)+' k':nf.format(Math.round(v))},'Revenus par mois '+cur,selM);
+}
+function tableM(){
+  var D=DATA[cur],T=tot(cur);
+  $('tTitle').textContent='Détail par mois en '+cur;
+  var h='<thead><tr><th>Mois</th><th>Nuits</th><th>Loc.</th><th>Brut</th><th>Net</th><th>Occ.</th></tr></thead><tbody>';
+  for(var m=0;m<12;m++)h+='<tr'+(m===selM?' class="cur"':'')+'><td>'+MS[m]+'</td><td>'+D.n[m]+'</td><td>'+D.c[m]+'</td><td>'+eur.format(D.g[m])+'</td><td>'+eur.format(D.t[m])+'</td><td>'+Math.round(D.n[m]/dM(cur,m)*100)+' %</td></tr>';
+  h+='</tbody><tfoot><tr><td>Total</td><td>'+T.n+'</td><td>'+T.c+'</td><td>'+eur.format(T.g)+'</td><td>'+eur.format(T.t)+'</td><td>'+Math.round(T.n/dIn(cur)*100)+' %</td></tr></tfoot>';
+  $('tblM').innerHTML=h;
+}
+function yearly(){
+  var lab=years.map(function(y){return String(y).slice(2)}),net=[],fee=[];
+  years.forEach(function(y){var T=tot(y);net.push(T.t);fee.push(T.g-T.t)});
+  bars($('chartY'),lab,net,fee,function(v){return v>=1000?nf.format(v/1000)+' k':nf.format(Math.round(v))},'Revenus bruts par année',years.indexOf(cur));
+  var h='<thead><tr><th>Année</th><th>Nuits</th><th>Loc.</th><th>Brut</th><th>Net</th><th>€/nuit</th></tr></thead><tbody>',A={n:0,c:0,g:0,t:0};
+  years.slice().reverse().forEach(function(y){var T=tot(y);A.n+=T.n;A.c+=T.c;A.g+=T.g;A.t+=T.t;
+    h+='<tr class="pick'+(y===cur?' cur':'')+'" data-y="'+y+'"><td>'+y+'</td><td>'+T.n+'</td><td>'+T.c+'</td><td>'+eur.format(T.g)+'</td><td>'+eur.format(T.t)+'</td><td>'+(T.n?eur.format(T.g/T.n):'–')+'</td></tr>'});
+  h+='</tbody><tfoot><tr><td>Total</td><td>'+A.n+'</td><td>'+A.c+'</td><td>'+eur.format(A.g)+'</td><td>'+eur.format(A.t)+'</td><td>'+eur.format(A.g/A.n)+'</td></tr></tfoot>';
+  $('tblY').innerHTML=h;
+}
+function tax(){
+  var T=tot(cur);
+  $('taxTitle').textContent='Pour la déclaration d\'impôts '+cur;
+  $('tax').innerHTML='<div>Recettes brutes</div><div>'+eur.format(T.g)+'</div><div>Abattement 50 %</div><div>−'+eur.format(T.g*.5)+'</div><div class="big">Revenu imposable estimé</div><div class="big">'+eur.format(T.g*.5)+'</div><div>Net perçu après frais Airbnb</div><div>'+eur.format(T.t)+'</div>';
+}
+function all(){chips();kpis();heat();chartM();tableM();yearly();tax()}
+function setYear(y){cur=y;selM=-1;all();}
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-y]');if(!t)return;
+  var y=+t.getAttribute('data-y'),m=t.getAttribute('data-m');
+  if(m!==null){cur=y;selM=+m;all()}else setYear(y);
+});
+all();
+})();
+</script>
+</body></html>
